@@ -1,0 +1,18 @@
+cff-version: 1.2.0
+title: agentry
+message: >-
+  If you use this software, please cite it using the
+  metadata from this file.
+type: software
+authors:
+  - given-names: Nicolas
+    family-names: Lamirault
+    email: nicolas.lamirault@gmail.com
+abstract: >-
+  An AI-agents-only company, run as OpenRig rigs (one per department).
+keywords:
+  - ai-agents
+  - openrig
+license: Apache-2.0
+repository-code: https://github.com/mechanema/agentry
+url: https://github.com/mechanema/agentry
