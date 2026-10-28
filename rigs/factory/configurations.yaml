@@ -1,0 +1,23 @@
+# SPDX-FileCopyrightText: Copyright (C) Nicolas Lamirault <nicolas.lamirault@gmail.com>
+# SPDX-License-Identifier: Apache-2.0
+
+# Every configuration installs once as `factory`: the `factory` workflow's
+# preferred_targets name `<pod>-<member>@factory`. `rig workflow instantiate
+# --rig` overrides target.rig, but a renamed install is untested (README.md).
+# Format: openrig.bundle-configurations/v1 (OpenRig's docs/reference/bundle-formats.md).
+schema: openrig.bundle-configurations/v1
+recommended: recommended
+seats:
+  plan.planner: {runtimes: {claude-code: planner, codex: planner}}
+  build.implementer: {runtimes: {claude-code: implementer, codex: implementer}}
+  check.qa: {runtimes: {claude-code: qa, codex: qa}}
+  review.reviewer: {runtimes: {claude-code: reviewer, codex: reviewer}}
+  dogfood.tester: {runtimes: {claude-code: dogfood, codex: dogfood}}
+  release.manager: {runtimes: {claude-code: release-manager, codex: release-manager}}
+  orch.lead: {runtimes: {claude-code: orchestrator, codex: orchestrator}}
+presets:
+  # Builder side on claude-code; check, review and dogfood on codex for
+  # cross-runtime diversity against the builder (upstream factory-rsi split).
+  recommended: {plan.planner: claude-code, build.implementer: claude-code, check.qa: codex, review.reviewer: codex, dogfood.tester: codex, release.manager: claude-code, orch.lead: claude-code}
+  all-claude: {plan.planner: claude-code, build.implementer: claude-code, check.qa: claude-code, review.reviewer: claude-code, dogfood.tester: claude-code, release.manager: claude-code, orch.lead: claude-code}
+  all-codex: {plan.planner: codex, build.implementer: codex, check.qa: codex, review.reviewer: codex, dogfood.tester: codex, release.manager: codex, orch.lead: codex}
