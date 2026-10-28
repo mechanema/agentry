@@ -1,0 +1,138 @@
+# SPDX-FileCopyrightText: Copyright (C) Nicolas Lamirault <nicolas.lamirault@gmail.com>
+# SPDX-License-Identifier: Apache-2.0
+
+version: "0.2"
+name: factory
+summary: >
+  Agentry's engineering department: a seven-seat recursive-self-improvement loop forked from OpenRig's factory-rsi. The `factory` workflow plans, builds, checks, and reviews one slice of a product, then prepares its release and holds it at a human gate. A dogfood seat uses the SHIPPED product and its recorded findings feed the next plan. Launch it with --cwd pointing at the product repository.
+culture_file: CULTURE.md
+
+docs:
+- path: README.md
+
+# Start steps shared by every seat; each seat's role file comes from its profile.
+startup:
+  files:
+  - path: agents/factory/startup/context.md
+    delivery_hint: send_text
+    required: true
+  actions:
+  - type: startup_proof
+    value: authenticated
+    idempotent: true
+
+managed_blocks:
+  claude-code: CLAUDE.local.md
+
+# No permission_policy/non_interruptive: seats launch under each runtime's
+# normal prompts. builtin:yolo stays off until this loop has been proven
+# (ADR-0001).
+
+# Seven pods, one member each, so every session name is `<pod>-<member>@factory`
+# and matches the `factory` workflow's preferred_targets 1:1. Pod and member
+# ids are kept identical to upstream factory-rsi; only the rig name changed.
+pods:
+- id: plan
+  label: Planning
+  summary: Turns the product corpus or the last dogfood findings into one buildable slice.
+  members:
+  - id: planner
+    agent_ref: "local:agents/factory"
+    profile: planner
+    runtime: claude-code
+    cwd: "."
+  edges: []
+
+- id: build
+  label: Build
+  summary: Builds the slice and produces proof.
+  members:
+  - id: implementer
+    agent_ref: "local:agents/factory"
+    profile: implementer
+    runtime: claude-code
+    cwd: "."
+  edges: []
+
+- id: check
+  label: Check
+  summary: Checks the built artifact; a failing check loops back to build.
+  members:
+  - id: qa
+    agent_ref: "local:agents/factory"
+    profile: qa
+    runtime: codex
+    cwd: "."
+  edges: []
+
+- id: review
+  label: Review
+  summary: Reviews the artifact on a different runtime from the builder.
+  members:
+  - id: reviewer
+    agent_ref: "local:agents/factory"
+    profile: reviewer
+    runtime: codex
+    cwd: "."
+  edges: []
+
+- id: dogfood
+  label: Dogfood
+  summary: Uses the shipped product out-of-band and records findings for the next plan.
+  members:
+  - id: tester
+    agent_ref: "local:agents/factory"
+    profile: dogfood
+    runtime: codex
+    cwd: "."
+  edges: []
+
+- id: release
+  label: Release
+  summary: Prepares the release and holds the ship decision at the human gate.
+  members:
+  - id: manager
+    agent_ref: "local:agents/factory"
+    profile: release-manager
+    runtime: claude-code
+    cwd: "."
+  edges: []
+
+- id: orch
+  label: Orchestration
+  summary: Exception target only; the workflow engine routes the loop.
+  members:
+  - id: lead
+    agent_ref: "local:agents/factory"
+    profile: orchestrator
+    runtime: claude-code
+    cwd: "."
+  edges: []
+
+# Workflow ROUTING is the `factory` workflow's job; these edges are topology
+# hints, not the routing.
+edges:
+- kind: delegates_to
+  from: orch.lead
+  to: plan.planner
+- kind: delegates_to
+  from: orch.lead
+  to: build.implementer
+- kind: delegates_to
+  from: orch.lead
+  to: check.qa
+- kind: delegates_to
+  from: orch.lead
+  to: review.reviewer
+- kind: delegates_to
+  from: orch.lead
+  to: dogfood.tester
+- kind: delegates_to
+  from: orch.lead
+  to: release.manager
+- kind: can_observe
+  from: check.qa
+  to: build.implementer
+- kind: can_observe
+  from: review.reviewer
+  to: build.implementer

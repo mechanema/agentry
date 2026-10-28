@@ -1,0 +1,13 @@
+# SPDX-FileCopyrightText: Copyright (C) Nicolas Lamirault <nicolas.lamirault@gmail.com>
+# SPDX-License-Identifier: Apache-2.0
+
+# Read by OpenRig when it builds this rig into a bundle.
+compatibility:
+  min_cli_version: "0.6.6"
+  min_daemon_version: "0.6.6"
+
+# Shown before install. OpenRig shows them; it doesn't run or check them.
+preconditions:
+- name: Open a shell at the root of the product repository the factory should improve, set up the way its own README/AGENTS.md says.
+- name: "Keep OpenRig's files out of that repository's commits: add CLAUDE.local.md, AGENTS.md, /.openrig/ and /proof/ to .git/info/exclude. The orchestrator adds any missing entries when it starts."
+- name: "The loop runs from this bundle's workflow/factory.yaml: after install, start a cycle with `rig workflow instantiate <bundle>/workflow/factory.yaml` (see README.md)."

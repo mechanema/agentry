@@ -1,0 +1,117 @@
+# SPDX-FileCopyrightText: Copyright (C) Nicolas Lamirault <nicolas.lamirault@gmail.com>
+# SPDX-License-Identifier: Apache-2.0
+
+# Agentry's factory loop, adapted from OpenRig's built-in `factory-rsi`
+# workflow (OPR.0.4.6.FAC2). Changes from upstream:
+# - target rig and preferred_targets renamed `factory-rsi` -> `factory`;
+# - skill_refs reduced to `openrig-user` (shipped in the openrig-core plugin);
+#   each role's method lives in its seat guidance instead of borrowed skills.
+#
+# Inner loop: plan -> implement -> qa_check -> review -> release_prep ->
+# release_signoff (human gate). A failing check or review routes back to
+# implement, bounded by max_hops. Dogfood is out-of-band and NOT a step here.
+workflow:
+  id: factory
+  version: 1
+  objective: >
+    Plan, build, check, review, and release one slice of the product as a bounded, engine-routed inner loop on the `factory` rig. Dogfood runs out-of-band against the shipped product and its recorded findings feed the next plan.
+  target:
+    rig: factory
+  entry:
+    role: planner
+  coordination_terminal_turn_rule: hot_potato
+  exception_routing:
+    default: orchestrator
+    orchestrator_role: orchestrator
+  roles:
+    planner:
+      skill_refs: [openrig-user]
+      preferred_targets: [plan-planner@factory]
+    implementer:
+      skill_refs: [openrig-user]
+      preferred_targets: [build-implementer@factory]
+    qa:
+      skill_refs: [openrig-user]
+      preferred_targets: [check-qa@factory]
+    reviewer:
+      skill_refs: [openrig-user]
+      preferred_targets: [review-reviewer@factory]
+    release_manager:
+      skill_refs: [openrig-user]
+      preferred_targets: [release-manager@factory]
+    orchestrator:
+      skill_refs: [openrig-user]
+      preferred_targets: [orch-lead@factory]
+    dogfood:
+      skill_refs: [openrig-user]
+      preferred_targets: [dogfood-tester@factory]
+  steps:
+  - id: plan
+    actor_role: planner
+    objective: >
+      Turn the current input — the product corpus on cycle 1, or the recorded out-of-band dogfood findings thereafter — into ONE buildable slice spec. The findings arrive as recorded closure evidence, never chat.
+    allowed_exits: [handoff, waiting, failed]
+    next_hop:
+      mode: require
+      suggested_roles: [implementer]
+  - id: implement
+    actor_role: implementer
+    objective: Build the slice per the plan and produce proof for the check.
+    allowed_exits: [handoff, waiting, failed]
+    next_hop:
+      mode: require
+      suggested_roles: [qa]
+  - id: qa_check
+    actor_role: qa
+    objective: >
+      Check the built artifact. Passing hands to review; a FAILING check (the artifact's verdict, not the step's dysfunction) routes back to implement for bounded remediation.
+    allowed_exits: [handoff, waiting, failed]
+    next_hop:
+      mode: require
+      suggested_roles: [reviewer]
+      on:
+        failed: implement
+  - id: review
+    actor_role: reviewer
+    objective: >
+      Review the artifact (cross-runtime diversity vs the builder). Passing hands to the release prep; a failing review routes back to implement.
+    allowed_exits: [handoff, waiting, failed]
+    next_hop:
+      mode: require
+      suggested_roles: [release_manager]
+      on:
+        failed: implement
+  - id: release_prep
+    actor_role: release_manager
+    objective: >
+      Prepare the release notes, docs updates, and the release PR (staged, not merged), and record the cycle's release evidence at `proof/PROOF.md` in the workspace. Publishing stays a human act, held at release_signoff.
+    allowed_exits: [handoff, waiting, failed]
+    next_hop:
+      # Explicit step-id route: release_prep and release_signoff share the
+      # release_manager role, so a role-based hop would be ambiguous.
+      on:
+        handoff: release_signoff
+  - id: release_signoff
+    actor_role: release_manager
+    objective: >
+      Hold the ship decision at the human gate, against the release artifacts already prepared in release_prep. Nothing is published automatically.
+    allowed_exits: [done, waiting, failed]
+    gate:
+      target: human@kernel
+      summary: "Factory cycle clean; release artifacts prepared — sign off to publish (publish is a human act)."
+      evidence_ref: proof/PROOF.md
+    next_hop:
+      mode: forbid
+  invariants:
+    continuation_required: true
+    preserve_lineage: true
+    closure_required: true
+    allowed_exits: [handoff, waiting, done, failed]
+  loop_guards:
+    # A trip becomes an exception; a resume grants one more bounded window.
+    max_hops: 20
+    spawn_budget: 0
+  closure:
+    success: Factory cycle clean; release candidate prepared and held at the human ship gate.
+    degraded: Cycle stopped with a named blocker or a bounded max_hops trip awaiting resume.
+    failed: Step failed as an exception; preserve the finding and route via the dial.

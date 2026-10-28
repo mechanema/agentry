@@ -1,0 +1,120 @@
+# SPDX-FileCopyrightText: Copyright (C) Nicolas Lamirault <nicolas.lamirault@gmail.com>
+# SPDX-License-Identifier: Apache-2.0
+
+name: factory
+version: "1.0"
+description: >
+  A seat on Agentry's factory rig, which runs the factory workflow against a product repository. The rig member's profile picks the role: planner, implementer, qa, reviewer, dogfood, release-manager, or orchestrator.
+# Lean like pilotariak-dev: no borrowed skill tree. Upstream factory-rsi seats
+# import OpenRig's `shared` skills (dogfood, review-team, TDD, ...); here each
+# role's method is written into its own guidance file instead. The one
+# dependency kept is OpenRig's own openrig-core plugin (shipped with every
+# install), which provides the `openrig-user` skill the workflow references.
+resources:
+  plugins:
+  - id: openrig-core
+    source:
+      kind: local
+      path: openrig-home:plugins/openrig-core
+  guidance:
+  - id: planner
+    path: guidance/planner.md
+  - id: implementer
+    path: guidance/implementer.md
+  - id: qa
+    path: guidance/qa.md
+  - id: reviewer
+    path: guidance/reviewer.md
+  - id: dogfood
+    path: guidance/dogfood.md
+  - id: release-manager
+    path: guidance/release-manager.md
+  - id: orchestrator
+    path: guidance/orchestrator.md
+  - id: startup-context
+    path: startup/context.md
+
+profiles:
+  planner:
+    summary: Turns the product corpus or the last dogfood findings into one buildable slice.
+    uses:
+      guidance: [planner]
+      plugins: [openrig-core]
+    startup:
+      files:
+      - path: guidance/planner.md
+        delivery_hint: send_text
+        required: true
+      actions: []
+
+  implementer:
+    summary: Builds the slice on its own branch and proves it by effect.
+    uses:
+      guidance: [implementer]
+      plugins: [openrig-core]
+    startup:
+      files:
+      - path: guidance/implementer.md
+        delivery_hint: send_text
+        required: true
+      actions: []
+
+  qa:
+    summary: Checks the built artifact against the slice's contract.
+    uses:
+      guidance: [qa]
+      plugins: [openrig-core]
+    startup:
+      files:
+      - path: guidance/qa.md
+        delivery_hint: send_text
+        required: true
+      actions: []
+
+  reviewer:
+    summary: Independent, evidence-based review on a different runtime from the builder.
+    uses:
+      guidance: [reviewer]
+      plugins: [openrig-core]
+    startup:
+      files:
+      - path: guidance/reviewer.md
+        delivery_hint: send_text
+        required: true
+      actions: []
+
+  dogfood:
+    summary: Uses the shipped product out-of-band and records findings for the next plan.
+    uses:
+      guidance: [dogfood]
+      plugins: [openrig-core]
+    startup:
+      files:
+      - path: guidance/dogfood.md
+        delivery_hint: send_text
+        required: true
+      actions: []
+
+  release-manager:
+    summary: Prepares the release and stops at the human gate.
+    uses:
+      guidance: [release-manager]
+      plugins: [openrig-core]
+    startup:
+      files:
+      - path: guidance/release-manager.md
+        delivery_hint: send_text
+        required: true
+      actions: []
+
+  orchestrator:
+    summary: Exception target only; keeps the loop honest without relaying it.
+    uses:
+      guidance: [orchestrator]
+      plugins: [openrig-core]
+    startup:
+      files:
+      - path: guidance/orchestrator.md
+        delivery_hint: send_text
+        required: true
+      actions: []
